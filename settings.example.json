@@ -1,0 +1,8 @@
+{
+  "_comment": "Copy this file to settings.json and set \"openlara\" to your own OpenLara checkout -- the folder holding src/platform/gba. It is only ever read; everything this project produces stays here. JSON needs each backslash of a Windows path doubled, or just use forward slashes. The other paths are relative to this file.",
+  "openlara": "C:\\path\\to\\OpenLara",
+  "models": "models",
+  "roms": "roms",
+  "work": "build",
+  "_devkitpro": "Optional. Only needed when the toolchain is not where its installer put it and DEVKITPRO is unset. Point it at the folder holding devkitARM/gba_rules."
+}

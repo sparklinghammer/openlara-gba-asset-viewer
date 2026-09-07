@@ -1,0 +1,63 @@
+# Build outputs -------------------------------------------------------------
+# The work tree is a mirror of the OpenLara sources plus this overlay, rebuilt
+# from scratch by every build; the ROMs and their reports come out of it.
+/build/
+/roms/
+
+# Local configuration --------------------------------------------------------
+# Both have a .example beside them. Copy, then edit the copy: settings.json
+# holds an absolute path to your own OpenLara checkout, and pack.json lists the
+# models you happen to be working on.
+/settings.json
+/models/pack.json
+
+# Models ---------------------------------------------------------------------
+# Only the demo model is tracked. Anything else you drop in models/ is yours,
+# and most of it will be ripped from a game you do not own the rights to.
+/models/*
+!/models/README.md
+!/models/pack.example.json
+!/models/cheems.glb
+
+# Captures of those models, for the same reason. media/screenshot.png is kept
+# because it shows the demo model only.
+/media/*
+!/media/screenshot.png
+
+# References that describe one particular set of models and folders rather than
+# the tool itself. What a stranger needs from them is summarised in README.md.
+/models/README.md
+/tools/README.md
+
+# Generated ------------------------------------------------------------------
+# Checksums and the package manifest describe a zip of this folder, which is
+# what git is for here; they would churn on every build.
+/SHA256SUMS.txt
+/manifest.json
+/BASELINE.txt
+
+# Superseded -----------------------------------------------------------------
+# The asset viewer used to be installed into the OpenLara checkout in place,
+# with a backup to restore afterwards. It now builds out of tree and never
+# writes there, so these have no job left and would only mislead.
+/scripts/apply_asset_viewer.py
+/scripts/restore_asset_viewer.py
+/scripts/build_asset_viewer.sh
+# Superseded by scripts/build_rom.py, which does the same job on any platform
+# and produces a byte-identical ROM.
+/scripts/build_asset_viewer.ps1
+/patch/
+/docs/CHANGESET.md
+/docs/donor-modifications-before-restore.patch
+/docs/*VALIDATION_REPORT.txt
+# Documents a --repo switch the verifier no longer has.
+/docs/VALIDATION.md
+# Its two outputs, SHA256SUMS.txt and manifest.json, are ignored above: it
+# belongs to the zip-release flow, not to the repository.
+/scripts/refresh_manifest.py
+
+# Artefacts ------------------------------------------------------------------
+__pycache__/
+*.pyc
+/tools/*.exe
+/C_C++/

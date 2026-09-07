@@ -1,0 +1,14 @@
+# Line endings are not cosmetic here: this project builds on Windows, Linux and
+# macOS, and a shell script checked out with CRLF fails on the last two with an
+# error that names the wrong thing entirely.
+
+* text=auto eol=lf
+
+# cmd.exe is the one interpreter that wants the carriage returns.
+*.bat text eol=crlf
+
+# Left exactly as they are.
+*.glb binary
+*.png binary
+*.pkd binary
+*.gba binary
