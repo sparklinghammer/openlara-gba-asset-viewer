@@ -2172,6 +2172,25 @@ def build_model_at(spec: ModelSpec, glyphs: GlyphStrip, verbose: bool,
     if None in used_materials:
         flat_colors[-1] = snap5((200, 200, 200))       # untextured, unmaterialed
 
+    if verbose:
+        borrowed = [model.materials[i].name
+                    for i in sorted(m for m in used_materials if m is not None)
+                    if getattr(model.materials[i], "from_emissive", False)]
+        if borrowed:
+            print(f"    note: {len(borrowed)} material(s) keep their image in the "
+                  "emissive slot rather than the base colour, which is how an unlit "
+                  "model is usually wired; the target has no lighting, so that image "
+                  f"is what gets drawn ({', '.join(repr(n) for n in borrowed[:3])})")
+        # A model whose every surface is flat black builds, loads, and shows
+        # nothing at all against the viewer's black background. Only worth
+        # saying when it is the whole model: a dark trim colour beside a
+        # textured body is just a dark trim colour.
+        if not image_of and flat_colors and all(max(rgb) <= 24 for rgb in flat_colors.values()):
+            print("    note: every material of this model is an untextured colour "
+                  "close to black, so it will be invisible against the viewer's "
+                  "black background. In Blender, wire the image into Base Color "
+                  "or Emission, or give the material a lighter colour.")
+
     decoded = {index: _decode_image(model.images[index]) for index in set(image_of.values())}
 
     # How far outside 0..1 does each image actually get used?

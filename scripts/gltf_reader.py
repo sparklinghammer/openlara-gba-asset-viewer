@@ -109,6 +109,9 @@ class Material:
     alpha_mode: str
     alpha_cutoff: float
     double_sided: bool
+    # True when the colour above came from the material's emissive slot rather
+    # than its base colour, which is worth saying out loud in the build log.
+    from_emissive: bool = False
 
 
 @dataclass
@@ -302,25 +305,51 @@ def _read_materials(doc: dict) -> list[Material]:
     materials: list[Material] = []
     for index, raw in enumerate(doc.get("materials", [])):
         pbr = raw.get("pbrMetallicRoughness", {})
-        texture_index = None
-        if "baseColorTexture" in pbr:
-            slot = pbr["baseColorTexture"]
+
+        def image_of(slot, where):
             if slot.get("texCoord", 0) != 0:
                 raise GltfError(
-                    f"material {index} samples TEXCOORD_{slot['texCoord']}; only set 0 is supported"
+                    f"material {index} samples TEXCOORD_{slot['texCoord']} for its "
+                    f"{where}; only set 0 is supported"
                 )
             source = textures[slot["index"]].get("source")
             if source is None:
-                raise GltfError(f"material {index} references a texture with no image source")
-            texture_index = source
+                raise GltfError(
+                    f"material {index} references a {where} with no image source")
+            return source
+
+        base_color = tuple(pbr.get("baseColorFactor", (1.0, 1.0, 1.0, 1.0)))
+        emissive = tuple(raw.get("emissiveFactor", (0.0, 0.0, 0.0)))
+        texture_index = None
+        from_emissive = False
+
+        if "baseColorTexture" in pbr:
+            texture_index = image_of(pbr["baseColorTexture"], "base colour texture")
+        elif "emissiveTexture" in raw:
+            # An unlit model is usually authored by wiring the image into
+            # Emission rather than Base Color, and Blender's exporter writes
+            # exactly that, leaving the base colour black. The target has no
+            # lighting at all, so emission is simply what the surface looks
+            # like; reading it is the only sane thing to do with it, and not
+            # reading it leaves a black model on a black background.
+            texture_index = image_of(raw["emissiveTexture"], "emissive texture")
+            from_emissive = True
+
+        # Same reasoning without a texture: a black base colour beside a lit
+        # emissive factor means the colour lives in the emissive slot.
+        if texture_index is None and max(base_color[:3]) == 0.0 and max(emissive) > 0.0:
+            base_color = tuple(emissive) + (base_color[3],)
+            from_emissive = True
+
         materials.append(Material(
             index=index,
             name=raw.get("name", f"material_{index}"),
-            base_color=tuple(pbr.get("baseColorFactor", (1.0, 1.0, 1.0, 1.0))),
+            base_color=base_color,
             base_color_texture=texture_index,
             alpha_mode=raw.get("alphaMode", "OPAQUE"),
             alpha_cutoff=float(raw.get("alphaCutoff", 0.5)),
             double_sided=bool(raw.get("doubleSided", False)),
+            from_emissive=from_emissive,
         ))
     return materials
 
