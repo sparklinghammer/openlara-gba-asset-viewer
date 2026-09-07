@@ -17,19 +17,18 @@ Point it at a clean clone and the clone stays clean.
 
 | Input | Action |
 |---|---|
-| Tap Left / Right | start spinning that way; tap again to stop ![demo spinning](media/spinning.gif) |
-| Hold Left / Right | turn by hand, after about a quarter second ![demo turn](media/turn.gif) |
-| Up / Down | pitch ![demo pitch](media/pitch.gif) |
-| Select + Left / Right | roll ![demo roll](media/roll.gif) |
-| Select + Up / Down | zoom in / out ![demo zoom](media/zoom.gif) |
-| L / R | previous / next model ![demo next](media/next.gif) |
-| Start | next animation ![demo anim-next](media/anim-next.gif) |
-| Select + Start | previous animation |
-| A | play / pause ![demo pause](media/pause.gif) |
-| Select + A | pause, then step one frame ![demo frames](media/frames.gif) |
-| B | face the camera again; zoom and vertical offset reset ![demo reset](media/reset.gif) |
-| Select alone | show / hide the control help ![demo help](media/help.gif) |
-| Select + L / R | move the model up / down the screen ![demo move](media/move.gif) |
+| Tap Left / Right | start spinning that way; tap again to stop <br>![demo spinning](media/spinning.gif) |
+| Hold Left / Right | turn by hand, after about a quarter second <br>![demo turn](media/turn.gif) |
+| Up / Down | pitch <br>![demo pitch](media/pitch.gif) |
+| Select + Left / Right | roll <br>![demo roll](media/roll.gif) |
+| Select + Up / Down | zoom in / out <br>![demo zoom](media/zoom.gif) |
+| L / R | previous / next model <br>![demo next](media/next.gif) |
+| Start<br>Select + Start | next animation<br>previous animation <br>![demo anim-next](media/anim-next.gif) |
+| A | play / pause <br>![demo pause](media/pause.gif) |
+| Select + A | pause, then step one frame <br>![demo frames](media/frames.gif) |
+| B | face the camera again; zoom and vertical offset reset <br>![demo reset](media/reset.gif) |
+| Select alone | show / hide the control help <br>![demo help](media/help.gif) |
+| Select + L / R | move the model up / down the screen <br>![demo move](media/move.gif) |
 
 Animations are listed by their native `STATE` id, no `IDLE` or `WALK` names are invented for them.
 
