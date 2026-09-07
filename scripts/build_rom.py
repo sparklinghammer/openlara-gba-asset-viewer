@@ -370,7 +370,20 @@ def main() -> int:
     if not built.is_file():
         raise BuildError(f"Build succeeded but the ROM is missing: {built}")
     output = roms_dir / f"openlara-asset-viewer-{mode}.gba"
-    shutil.copyfile(built, output)
+    try:
+        shutil.copyfile(built, output)
+    except OSError as error:
+        # Windows refuses to overwrite a file another process has mapped, and
+        # an emulator left open on the last ROM is exactly that. The build
+        # itself succeeded, so say where its copy is rather than throwing a
+        # traceback that reads as though the model were at fault.
+        raise BuildError(
+            f"The ROM was built but could not be written to {output}: "
+            f"{error.strerror or error}.\n"
+            "An emulator usually still has the old one open. Close it and run "
+            "the build again.\n"
+            f"The build's own copy is ready at {built}."
+        ) from error
 
     data = output.read_bytes()
     print(f"ROM:    {output}")
