@@ -6,9 +6,8 @@ textured, animated, and you can spin them around on real hardware.
 
 ![The viewer running the demo model](media/cheems.gif)
 
-It's built on [OpenLara](https://github.com/XProger/OpenLara), XProger's
-open-source Tomb Raider engine. The GBA port is the interesting part: a software
-rasteriser that stays playable on a 16 MHz ARM7 with no FPU.
+It's built on the GBA port of [OpenLara](https://github.com/XProger/OpenLara), XProger's
+open-source Tomb Raider engine.
 
 It never touches your OpenLara clone. The sources it needs get copied into a
 work folder, the viewer goes on top, and everything compiles there. Your clone
