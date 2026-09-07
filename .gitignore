@@ -22,6 +22,16 @@
 # Captures of those models, for the same reason. media/screenshot.png is kept
 # because it shows the demo model only.
 /media/*
+!/media/cheems.gif
+!/media/spinning.gif
+!/media/turn.gif
+!/media/pitch.gif
+!/media/roll.gif
+!/media/zoom.gif
+!/media/next.gif
+!/media/reset.gif
+!/media/help.gif
+!/media/move.gif
 !/media/screenshot.png
 
 # References that describe one particular set of models and folders rather than
