@@ -11,6 +11,8 @@ This project **never writes into your OpenLara checkout**:
 it mirrors thesources into a work folder of its own, lays its viewer on top, and builds there.
 Point it at a clean clone and the clone stays clean.
 
+Disclaimer : AI was used to help put in phrases the technical parts of this readme file.
+
 ---
 
 ## Controls
@@ -183,9 +185,6 @@ Every key is optional. These are all of them:
 
 ### What the target can do
 
-The GBA renderer is not a GPU. Everything below is a real limit of the engine or
-of its data format, not a policy of this project:
-
 | Subject | Rule |
 |---|---|
 | Materials | three: flat colour, opaque textured, colour-keyed textured |
@@ -312,5 +311,3 @@ own models. Loading Tomb Raider models instead requires your own copy of the
 game — see `docs/ASSET_NOTICE.md` for exactly which files stay outside.
 
 The demo model (`models/cheems.glb`) is made by "feverpepper" on Sketchfab (https://sketchfab.com/3d-models/cheems-912a6ee6504b4b7a8b0226000e01cdea), I just decimated the geometry a bit so it can fit better.
-
-PS: AI was used to help me make this technical readme file.
