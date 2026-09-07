@@ -2596,6 +2596,7 @@ def track_channels(model, animation, node_slot, spec, verbose):
     rotation: dict[int, gltf_reader.Sampler] = {}
     translation: dict[int, gltf_reader.Sampler] = {}
     ignored = set()
+    stretched = set()
     for channel in animation.channels:
         if channel.node not in node_slot:
             continue
@@ -2610,14 +2611,22 @@ def track_channels(model, animation, node_slot, spec, verbose):
                 # static node table.
                 ignored.add(channel.node)
         elif channel.path == "scale" and len({tuple(v) for v in sampler.values}) > 1:
-            raise BuildError(
-                f"{spec.path.name}: animation {animation.name!r} scales "
-                f"{model.nodes[channel.node].name!r}; the engine has no per-joint scale"
-            )
-    if ignored and verbose:
-        names = ", ".join(sorted(model.nodes[n].name for n in ignored))
-        print(f"    note: {animation.name!r} animates the position of {names}; "
-              "the engine keeps joint positions static, so only rotation is kept")
+            # Dropped rather than refused, exactly like an animated position.
+            # The engine has no per-joint scale, so the squash cannot be kept
+            # either way; refusing the model would throw away the rotation as
+            # well, which is nearly all of the movement. A rig with a little
+            # squash on one wrist is not a model anyone wants turned away.
+            stretched.add(channel.node)
+    if verbose:
+        if ignored:
+            names = ", ".join(sorted(model.nodes[n].name for n in ignored))
+            print(f"    note: {animation.name!r} animates the position of {names}; "
+                  "the engine keeps joint positions static, so only rotation is kept")
+        if stretched:
+            names = ", ".join(sorted(model.nodes[n].name for n in stretched))
+            print(f"    note: {animation.name!r} scales {names}; the engine has no "
+                  "per-joint scale, so the stretch is dropped and the rest of the "
+                  "motion is kept")
     duration = 0.0
     for sampler in list(rotation.values()) + list(translation.values()):
         if sampler.times:
