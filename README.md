@@ -1,15 +1,18 @@
 # OpenLara GBA Asset Viewer
 
 Put your own 3D models on a Game Boy Advance. Drop a `.glb`, `.dae`, `.obj` or
-`.fbx` into a folder, double-click one file, and you get a `.gba` ROM that
-displays them textured, animated, and rotatable on the hardware.
+`.fbx` in a folder, run one script, and you get a `.gba` ROM that shows them:
+textured, animated, and you can spin them around on real hardware.
 
 ![The viewer running the demo model](media/cheems.gif)
 
-It is built on [OpenLara](https://github.com/XProger/OpenLara), XProger's open-source Tomb Raider engine. 
-This project **never writes into your OpenLara checkout**: 
-it mirrors the sources into a work folder of its own, lays its viewer on top, and builds there.
-Point it at a clean clone and the clone stays clean.
+It's built on [OpenLara](https://github.com/XProger/OpenLara), XProger's
+open-source Tomb Raider engine. The GBA port is the interesting part: a software
+rasteriser that stays playable on a 16 MHz ARM7 with no FPU.
+
+It never touches your OpenLara clone. The sources it needs get copied into a
+work folder, the viewer goes on top, and everything compiles there. Your clone
+stays exactly as you cloned it.
 
 Disclaimer: AI was used to help put in phrases the technical parts of this readme file.
 
@@ -32,7 +35,8 @@ Disclaimer: AI was used to help put in phrases the technical parts of this readm
 | Select alone | show / hide the control help <br>![demo help](media/help.gif) |
 | Select + L / R | move the model up / down the screen <br>![demo move](media/move.gif) |
 
-Animations are listed by their native `STATE` id, no `IDLE` or `WALK` names are invented for them.
+Animations show their native `STATE` id. I don't invent `IDLE` or `WALK` names
+for them, because the data doesn't have any.
 
 ---
 
@@ -40,65 +44,60 @@ Animations are listed by their native `STATE` id, no `IDLE` or `WALK` names are 
 
 | | | |
 |---|---|---|
-| **OpenLara** | a checkout of <https://github.com/XProger/OpenLara> | read-only; nothing is written to it |
-| **devkitPro** | the `gba-dev` package group | devkitARM, libgba, libtonc and maxmod |
-| **Python** | 3.10 or newer, with [Pillow](https://pypi.org/project/Pillow/) | the converter and the build driver |
-| **GNU make** | any recent version | devkitPro ships one on Windows |
+| **OpenLara** | a clone of <https://github.com/XProger/OpenLara> | read-only, nothing gets written to it |
+| **devkitPro** | the `gba-dev` package group | devkitARM, libgba, libtonc, maxmod |
+| **Python** | 3.10+, with [Pillow](https://pypi.org/project/Pillow/) | converter and build driver |
+| **GNU make** | any recent one | devkitPro ships one on Windows |
 
-Windows, Linux and macOS all work. One driver, `scripts/build_rom.py`, does the
-whole job; `BUILD_ROM.bat` and `build_rom.sh` are thin wrappers around it so
-that either platform has something to double-click or run. The two produce
-byte-identical ROMs.
+Works on Windows, Linux and macOS. `scripts/build_rom.py` does everything;
+`BUILD_ROM.bat` and `build_rom.sh` just wrap it so there's something to
+double-click. Same ROM either way, byte for byte.
 
-### Getting OpenLara
+### OpenLara
 
 ```bash
 git clone https://github.com/XProger/OpenLara.git
 ```
 
-Any recent revision should do. What matters is that the checkout contains
-`src/platform/gba` and `src/fixed` — that is the GBA port and the shared
-fixed-point engine. You do **not** need to build OpenLara yourself, and you do
-not need any Tomb Raider game data to use this viewer with your own models.
+Any recent revision works. It just has to have `src/platform/gba` and
+`src/fixed` in it. You don't need to build OpenLara, and you don't need any Tomb
+Raider game data to view your own models.
 
-### Getting devkitPro
+### devkitPro
 
-Install the [devkitPro
-updater](https://github.com/devkitPro/installer/releases), then select the
-**gba-dev** group. On a system that already has `dkp-pacman`:
+Grab the [installer](https://github.com/devkitPro/installer/releases) and pick
+the **gba-dev** group. If you already have `dkp-pacman`:
 
 ```bash
 dkp-pacman -S gba-dev
 ```
 
-The installer sets `DEVKITPRO` and `DEVKITARM` for you. The Makefile stops with
-a clear message if `DEVKITARM` is unset, and links against `-ltonc -lmm`, both
-of which come with that group.
+It sets `DEVKITPRO` and `DEVKITARM` for you. The Makefile needs `-ltonc -lmm`,
+both in that group.
 
-### Getting Python
+### Python
 
-Python 3.10+ from python.org or the Microsoft Store, then:
+3.10 or newer, then:
 
 ```bash
 pip install pillow
 ```
 
-Pillow decodes the textures your models reference and packs them into the
-engine's 256×256 atlas pages. Without it the converter stops with a message
-saying so.
+Pillow reads your textures and packs them into the engine's 256×256 atlas pages.
+Skip it and the converter will tell you it's missing.
 
 ---
 
 ## Setting up
 
 ```bash
-git clone https://github.com/<you>/OpenLara_GBA_Asset_Viewer.git
-cd OpenLara_GBA_Asset_Viewer
-copy settings.example.json settings.json
+git clone https://github.com/sparklinghammer/openlara-gba-asset-viewer.git
+cd openlara-gba-asset-viewer
+cp settings.example.json settings.json
 ```
 
-Open `settings.json` and set `openlara` to your checkout — the folder that holds
-`src/platform/gba`:
+Edit `settings.json` and point `openlara` at your clone, the folder with
+`src/platform/gba` in it:
 
 ```json
 {
@@ -109,41 +108,41 @@ Open `settings.json` and set `openlara` to your checkout — the folder that hol
 }
 ```
 
-JSON wants each backslash of a Windows path doubled. Forward slashes work too
-and avoid the question.
+Watch the backslashes: JSON wants them doubled. Forward slashes work too and
+save you the trouble.
 
 ## Building
 
 **Windows:** double-click `BUILD_ROM.bat`.
-**Linux and macOS:** `./build_rom.sh`.
+**Linux / macOS:** `./build_rom.sh`.
 
-Either one converts everything in `models/`, compiles the ROM, verifies it, and
-leaves it in `roms/openlara-asset-viewer-custom.gba`. A fresh clone ships one
-model — the demo dog — so the first build works before you have configured
-anything but the OpenLara path.
+It converts everything in `models/`, compiles, verifies, and drops the ROM in
+`roms/openlara-asset-viewer-custom.gba`. There's one model in a fresh clone, so
+the first build works before you've configured anything except the OpenLara
+path.
 
-Both accept a *different* folder of models, to build from it without touching
-`models/`: drop the folder onto the `.bat`, or pass it to the `.sh`.
+Want to build from a different folder without touching `models/`? Drag it onto
+the `.bat`, or pass it to the `.sh`.
 
-Both are wrappers around `scripts/build_rom.py`, which you can call directly:
+Or call the driver yourself:
 
 ```bash
 python scripts/build_rom.py --openlara ~/code/OpenLara --models ~/my-models
-python scripts/build_rom.py --clean          # throw the work folder away first
+python scripts/build_rom.py --clean          # nuke the work folder first
 ```
 
-If your devkitPro is somewhere its installer did not put it and `DEVKITPRO` is
-unset, add a `"devkitpro"` key to `settings.json` pointing at the folder that
-holds `devkitARM/gba_rules`.
+If devkitPro isn't where its installer put it and `DEVKITPRO` isn't set, add a
+`"devkitpro"` key to `settings.json` pointing at the folder with
+`devkitARM/gba_rules` in it.
 
 ---
 
 ## Adding your own models
 
-Drop files into `models/`. One level of subfolders is searched too, because a
-COLLADA file usually travels as a folder with its textures beside it.
+Drop files in `models/`. Subfolders are scanned one level deep, since a COLLADA
+file usually comes as a folder with its textures next to it.
 
-Four formats are read, and all four produce the same structures downstream:
+Four formats, four readers, all producing the same thing downstream:
 
 | Format | Reader |
 |---|---|
@@ -152,8 +151,8 @@ Four formats are read, and all four produce the same structures downstream:
 | Wavefront `.obj` + `.mtl` | `scripts/obj_reader.py` |
 | FBX (ASCII) | `scripts/fbx_reader.py` |
 
-Order, names and per-model options come from an optional `models/pack.json`.
-Without one, the folder is simply scanned:
+Add a `models/pack.json` if you want to control the order, the names, or
+anything per model. Without it the folder just gets scanned:
 
 ```json
 {
@@ -165,131 +164,133 @@ Without one, the folder is simply scanned:
 }
 ```
 
-`rotate` is for exports that stayed Z-up: without it the model lies on its side.
-The converter prints each model's rest dimensions so a mistake is obvious, but
-it does not guess — a quadruped is honestly longer than it is tall.
+`rotate` is for Blender exports that stayed Z-up. Without it your model lies on
+its side. The converter prints each model's size at rest so you can spot it, but
+it won't rotate anything on its own: a dog really is longer than it is tall.
 
-Every key is optional. These are all of them:
+Every key is optional:
 
 | Key | Default | What it does |
 |---|---|---|
-| `name` | the file name | the title shown on screen, 23 characters at most |
-| `slot` | position in the list | where it lands in the catalogue, 0 to 190 |
-| `scale` | `"auto"` | `auto` grows a model under 64 units to one sector (1024); otherwise a number |
+| `name` | the file name | title on screen, 23 characters max |
+| `slot` | position in the list | where it goes in the catalogue, 0 to 190 |
+| `scale` | `"auto"` | `auto` grows anything under 64 units up to one sector (1024); or give a number |
 | `frame_rate` | `2` | ticks between resampled keyframes; 1 is 30 Hz, 2 is 15 Hz |
-| `rotate` | `[0, 0, 0]` | degrees X, Y, Z applied before anything else |
-| `flip_winding` | `"auto"` | force the facing when a part shows its inside |
-| `double_sided` | `"auto"` | `auto` repairs the winding and keeps one face per triangle, doubling only surfaces that cannot be oriented at all; `true` doubles everything, `false` never does |
+| `rotate` | `[0, 0, 0]` | degrees X, Y, Z, applied before anything else |
+| `flip_winding` | `"auto"` | force the facing when something shows its inside |
+| `double_sided` | `"auto"` | `auto` fixes the winding and keeps one face per triangle, doubling only what can't be oriented at all; `true` doubles everything, `false` never does |
 
-`defaults` sets `frame_rate` and `scale` for every model at once.
+`defaults` applies `frame_rate` and `scale` to every model at once.
 
-### What the target can do
+### What the hardware can take
 
-| Subject | Rule |
+| Subject | Limit |
 |---|---|
 | Materials | three: flat colour, opaque textured, colour-keyed textured |
-| Joints | 32, addressed through a 32-bit visibility mask |
-| Vertices | 255 per mesh block; a bigger mesh is split across extra joints at zero offset |
-| Faces | 1920 per frame; refused past that, warned at 80 % |
-| Textures | 1536 records, atlas pages of 256×256 |
-| UV span | ≤ 127 texels per face, or the engine clips it silently |
-| Scale | no per-joint scale exists, so any in the chain is baked into the vertices |
-| Animated scale | impossible; the stretch is dropped and reported, the rest of the motion kept |
+| Joints | 32, addressed by a 32-bit visibility mask |
+| Vertices | 255 per mesh block; anything bigger gets split across extra joints at zero offset |
+| Faces | 1920 per frame, refused past that, warned at 80% |
+| Textures | 1536 records, 256×256 atlas pages |
+| UV span | 127 texels per face max, or the engine clips it without saying so |
+| Scale | there's no per-joint scale, so any scale in the chain gets baked into the vertices |
+| Animated scale | can't be done; the stretch is dropped and reported, the rest of the motion stays |
 
-Anything the engine cannot express is reported as an error rather than quietly
-dropped: ngons, sparse accessors, mirrored matrices.
+If the engine can't express something, you get an error instead of a silent
+drop. Ngons, sparse accessors and mirrored matrices all stop the build.
 
-### The parts that took the longest to get right
+### Things that bit me
 
-These are worth knowing about, because they are where a converted model goes
-wrong in ways that look like something else:
+Worth knowing, because when these go wrong the model breaks in a way that looks
+like a completely different bug.
 
-**Which side of a face is the front** is read, never guessed. Normals first —
-glTF `NORMAL`, COLLADA `<input semantic="NORMAL">`, OBJ `vn`, FBX
-`LayerElementNormal` — then the signed volume when the shell is closed, which is
-a fact rather than an estimate. A file that is both open and stripped of its
-normals says nothing about its facing; that is reported in the build log, and
-`flip_winding` in `pack.json` is where you write the answer. Measuring a piece's
-outside from its shape turned car wheels and locks of hair inside out, so it is
-not done at all.
+**Face orientation comes from the file, not from a guess.** Normals first (glTF
+`NORMAL`, COLLADA `<input semantic="NORMAL">`, OBJ `vn`, FBX
+`LayerElementNormal`), then signed volume if the shell is closed. If a file has
+neither, the build log says so and you settle it with `flip_winding`. I used to
+work the outside out from the shape of each piece, and it turned car wheels and
+locks of hair inside out.
 
-**A skeleton is posed a vertex at a time.** The engine transforms a mesh block
-with one matrix, which suits a model built as separate rigid limbs and tears one
-whose triangles straddle its joints — and every DS or GBA era character is the
-second kind. A quarter of Link's triangles have corners on two different bones.
-So the viewer captures each bone's matrix in model space, moves every vertex by
-the matrix of *its own* bone into a copy of the block held in RAM, and lets the
-engine draw that copy as ordinary rigid geometry. A vertex a source shares
-between several bones keeps every influence it names, up to four, blended by
-weight.
+**Skeletons are posed one vertex at a time.** The engine transforms a whole mesh
+block with a single matrix. That's fine for a model built as separate rigid
+limbs, and it tears apart any model whose triangles cross a joint. Every DS or
+GBA era character is the second kind: a quarter of Link's triangles have corners
+on two different bones. So the viewer grabs each bone's matrix, moves every
+vertex by the matrix of *its own* bone into a RAM copy of the block, and hands
+that to the engine as normal rigid geometry. Vertices shared between bones keep
+all their influences, up to four, blended by weight.
 
-**Seams cannot open**, because a vertex is computed once from one rest position:
-two blocks that share it land on exactly the same point. Before that, each block
-rounded its copy to the format's four-unit lattice in its own frame, and two
-frames round two ways — a one-pixel crack along every seam, invisible until you
+**Seams don't open any more.** Each vertex is computed once from one rest
+position, so two blocks sharing it land on the same pixel. They used to round
+their own copy to the format's four-unit grid in their own frame, and two frames
+round two different ways. One-pixel crack along every seam, invisible until you
 zoom in.
 
 ---
 
 ## Checking a conversion
 
-The converter is not the last word; several tools exist to disagree with it.
+The converter isn't the last word. A few tools exist to argue with it:
 
 ```bash
-# Replay a converted body the way the engine walks it, and compare it to the source
+# Replay a converted body the way the engine walks it, compare against the source
 python scripts/check_custom_body.py --glyphs <TITLE.PKD> model.glb
 
-# Draw a converted model offline, through the engine's own pipeline
+# Draw it offline through the engine's own pipeline
 python scripts/preview_custom_body.py --glyphs <TITLE.PKD> model.glb --out preview.png
 
 # Read the same model through two formats and diff the result
 python scripts/compare_sources.py hero.dae hero.fbx
 
-# Generate a diagnostic model: six faces, two joints, an animation
+# Diagnostic model: six faces, two joints, an animation
 python scripts/make_test_model.py --output models/test_cube.glb
 
-# And one that exercises weighted skinning, which no ripped model does
+# And one with weighted skinning, which no ripped model has
 python scripts/make_test_model.py --output models/test_skin.glb --skinned
 ```
 
-`tools/viewer_tour_runner.c` is the one that looks at what a GBA would actually
-show: it loads the ROM in **libmGBA**, frames every model to the same size,
-walks all the way round it, and dumps the real Mode 4 page. It links against a
-libmGBA you build yourself:
+`tools/viewer_tour_runner.c` is the one that shows what a GBA would actually
+draw. It runs the ROM in **libmGBA**, frames every model to the same size, walks
+around it and dumps the real Mode 4 page. Build it against a libmGBA of your
+own:
 
 ```bash
-gcc -O2 -o viewer_tour_runner tools/viewer_tour_runner.c   -DM_CORE_GBA -DENABLE_VFS -DENABLE_VFS_FD -DENABLE_DIRECTORIES   -DBUILD_STATIC -DNDEBUG -D_GNU_SOURCE   -DHAVE_STRDUP -DHAVE_STRNDUP -DHAVE_SETLOCALE -DHAVE_VASPRINTF   -I<mgba-build>/include -I<mgba-source>/include <mgba-build>/libmgba.a -lm
+gcc -O2 -o viewer_tour_runner tools/viewer_tour_runner.c \
+  -DM_CORE_GBA -DENABLE_VFS -DENABLE_VFS_FD -DENABLE_DIRECTORIES \
+  -DBUILD_STATIC -DNDEBUG -D_GNU_SOURCE \
+  -DHAVE_STRDUP -DHAVE_STRNDUP -DHAVE_SETLOCALE -DHAVE_VASPRINTF \
+  -I<mgba-build>/include -I<mgba-source>/include <mgba-build>/libmgba.a -lm
 # Windows also needs -lshlwapi -lole32 -luuid -lws2_32
 
 viewer_tour_runner ROM OUT_DIR MODEL_COUNT [COVERAGE_PERCENT] [ANIM_FRAMES]
 ```
 
-`COVERAGE_PERCENT` is how much of the screen the model should fill before the
-captures are taken, so every model is judged at the same size; `ANIM_FRAMES`
-steps a fixed number of frames into the animation, so two ROMs can be compared
-on the same pose. It also dumps raw palette indices, which is what separates a
-genuine crack from black paint — the viewer's background is palette index 0 and
-no texel is ever assigned to it.
+`COVERAGE_PERCENT` is how much of the screen the model should fill before it
+captures, so every model is judged at the same size. `ANIM_FRAMES` steps into
+the animation by a fixed amount, so you can compare two ROMs on the same pose.
+It also dumps raw palette indices, which is how you tell a real crack from black
+paint: the background is palette index 0 and no texel ever lands there.
 
 ---
 
-## How it is put together
+## Layout
 
 ```text
 BUILD_ROM.bat            one-click build, Windows
-build_rom.sh             the same, Linux and macOS
+build_rom.sh             same thing, Linux and macOS
 settings.example.json    copy to settings.json, set the OpenLara path
 models/                  your models; only the demo one is in git
-overlay/                 the viewer, and the four donor files it hooks into
+overlay/                 the viewer, plus the donor files it hooks into
 scripts/                 converter, build driver, verifiers
 tools/                   the emulator runner
 docs/                    controls, asset notice
 ```
 
-The build mirrors the OpenLara sources into `build/`, copies `overlay/` over the
-mirror, applies a few compile fixes that this devkitARM needs — each idempotent,
-each reporting if it no longer applies because OpenLara moved on — and builds
-there. Four files of the donor are involved:
+The build copies the OpenLara sources into `build/`, drops `overlay/` on top,
+applies a few compile fixes this devkitARM needs, and builds there. Each fix is
+idempotent and complains if it stops applying, which is how you find out
+OpenLara moved on upstream.
+
+Four donor files are involved:
 
 ```text
 overlay/src/fixed/common.cpp                    keeps game data out of the binary
@@ -302,12 +303,12 @@ overlay/src/platform/gba/asset_viewer.{cpp,h}   the viewer itself
 
 ## Licence and assets
 
-OpenLara is © Timur "XProger" Gagiev under the
-[BSD 2-Clause](https://github.com/XProger/OpenLara/blob/master/LICENSE) licence;
-the four overlay files above are derived from it and carry the same terms.
+OpenLara is © Timur "XProger" Gagiev, [BSD
+2-Clause](https://github.com/XProger/OpenLara/blob/master/LICENSE). The four
+overlay files above are derived from it and keep the same terms.
 
-**No Tomb Raider data is redistributed here**, and none is needed to view your
-own models. Loading Tomb Raider models instead requires your own copy of the
-game — see `docs/ASSET_NOTICE.md` for exactly which files stay outside.
+**No Tomb Raider data here**, and you don't need any to view your own models. If
+you want to load Tomb Raider's models instead, that needs your own copy of the
+game. `docs/ASSET_NOTICE.md` lists exactly which files stay outside.
 
 The demo model (`models/cheems.glb`) is made by "feverpepper" on Sketchfab (https://sketchfab.com/3d-models/cheems-912a6ee6504b4b7a8b0226000e01cdea), I just decimated the geometry a bit so it can fit better.
