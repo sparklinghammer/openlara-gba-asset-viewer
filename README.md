@@ -8,10 +8,10 @@ displays them textured, animated, and rotatable on the hardware.
 
 It is built on [OpenLara](https://github.com/XProger/OpenLara), XProger's open-source Tomb Raider engine. 
 This project **never writes into your OpenLara checkout**: 
-it mirrors thesources into a work folder of its own, lays its viewer on top, and builds there.
+it mirrors the sources into a work folder of its own, lays its viewer on top, and builds there.
 Point it at a clean clone and the clone stays clean.
 
-Disclaimer : AI was used to help put in phrases the technical parts of this readme file.
+Disclaimer: AI was used to help put in phrases the technical parts of this readme file.
 
 ---
 
