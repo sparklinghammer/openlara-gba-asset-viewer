@@ -23,6 +23,9 @@
 # because it shows the demo model only.
 /media/*
 !/media/cheems.gif
+!/media/anim-next.gif
+!/media/pause.gif
+!/media/frames.gif
 !/media/spinning.gif
 !/media/turn.gif
 !/media/pitch.gif

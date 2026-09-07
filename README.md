@@ -23,10 +23,10 @@ Point it at a clean clone and the clone stays clean.
 | Select + Left / Right | roll ![demo roll](media/roll.gif) |
 | Select + Up / Down | zoom in / out ![demo zoom](media/zoom.gif) |
 | L / R | previous / next model ![demo next](media/next.gif) |
-| Start | next animation |
+| Start | next animation ![demo anim-next](media/anim-next.gif) |
 | Select + Start | previous animation |
-| A | play / pause |
-| Select + A | pause, then step one frame |
+| A | play / pause ![demo pause](media/pause.gif) |
+| Select + A | pause, then step one frame ![demo frames](media/frames.gif) |
 | B | face the camera again; zoom and vertical offset reset ![demo reset](media/reset.gif) |
 | Select alone | show / hide the control help ![demo help](media/help.gif) |
 | Select + L / R | move the model up / down the screen ![demo move](media/move.gif) |
