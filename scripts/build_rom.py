@@ -9,9 +9,9 @@ from upstream without this project interfering.
 
 One driver for Windows, Linux and macOS. Only two things actually differ, and
 both are Windows problems: devkitARM's bundled shell cannot cope with spaces in
-a path, so the tree is reached through a temporary drive letter; and that shell
-wants its DEVKITPRO in MSYS form, /c/... rather than C:\\... . Everywhere else
-the paths are handed to make as they are.
+a path, so each tree is reached through a temporary drive letter mapped past
+them; and that shell wants its DEVKITPRO in MSYS form, /c/... rather than
+C:\\... . Everywhere else the paths are handed to make as they are.
 """
 
 from __future__ import annotations
@@ -173,22 +173,37 @@ def lay_overlay(src_root: Path) -> int:
 # compiling
 # ---------------------------------------------------------------------------
 
-def free_drive_letter() -> str:
-    taken = {Path(f"{letter}:/") for letter in string.ascii_uppercase
-             if Path(f"{letter}:/").exists()}
+def drive_in_use(letter: str) -> bool:
+    try:
+        return Path(f"{letter}:/").exists()
+    except OSError:
+        # An empty card reader answers neither yes nor no: it raises. A letter
+        # we cannot read is a letter we must not claim.
+        return True
+
+
+def free_drive_letter(reserved: frozenset[str] = frozenset()) -> str:
     for letter in "QRSTUVWYZ":
-        if Path(f"{letter}:/") not in taken:
+        if letter not in reserved and not drive_in_use(letter):
             return letter
     raise BuildError("No temporary drive letter available.")
 
 
-def common_ancestor(a: Path, b: Path) -> Path | None:
-    parts = []
-    for left, right in zip(a.parts, b.parts):
-        if left != right:
-            break
-        parts.append(left)
-    return Path(*parts) if len(parts) >= 2 else None
+def discard_stale_objects(work_gba: Path, signature: str) -> None:
+    """Object files remember the paths they were compiled through.
+
+    The dependency files gcc leaves behind name every header by absolute path,
+    and on Windows those paths run through whichever drive letter happened to
+    be free that day. Let a build inherit objects made through a different
+    mapping and make stops on a header it cannot find, naming a drive that now
+    means something else entirely. Recompiling is cheaper than explaining.
+    """
+    stamp = work_gba / ".toolchain-paths"
+    if stamp.is_file() and stamp.read_text(encoding="utf-8") == signature:
+        return
+    shutil.rmtree(work_gba / "build", ignore_errors=True)
+    stamp.parent.mkdir(parents=True, exist_ok=True)
+    stamp.write_text(signature, encoding="utf-8")
 
 
 def run_make(work_gba: Path, devkitpro: Path, make: str, mode: str, target: str) -> None:
@@ -218,38 +233,48 @@ def run_make(work_gba: Path, devkitpro: Path, make: str, mode: str, target: str)
             make_dir,
             environment.get("PATH", ""),
         ])
+        discard_stale_objects(work_gba, f"{work_gba}\n{devkitpro}")
         subprocess.run(arguments, cwd=work_gba, env=environment, check=True)
         return
 
-    # devkitARM's shell cannot cope with the spaces a Windows user's path
-    # usually has, so the tree is reached through a temporary drive letter. The
-    # mapped root has to contain both this project and the toolchain, so it is
-    # their common ancestor.
-    root = common_ancestor(work_gba, devkitpro)
-    if root is None:
-        raise BuildError(
-            "This project and devkitPro share no folder; put the toolchain on "
-            "the same drive, or set DEVKITPRO to one that is."
-        )
-    drive = free_drive_letter()
-    relative_gba = work_gba.relative_to(root)
-    relative_devkit = devkitpro.relative_to(root)
-    msys_devkit = f"/{drive.lower()}/{relative_devkit.as_posix()}"
+    # devkitARM's shell splits its arguments on spaces, and a Windows path
+    # nearly always has one: "OneDrive - Contoso", "My Documents", a surname.
+    # Each tree therefore gets its own temporary drive letter, mapped past the
+    # part that carries them. Two letters rather than one shared root: the
+    # toolchain is usually in C:\devkitPro and the project under C:\Users\...,
+    # which have only the drive itself in common -- and mapping a whole drive
+    # would leave every space exactly where it was.
+    build_root = work_gba.parents[2]
+    build_drive = free_drive_letter()
+    devkit_drive = free_drive_letter(frozenset(build_drive))
 
-    subprocess.run(["subst", f"{drive}:", str(root)], check=True, shell=True)
+    # devkitPro is reached through its parent, so DEVKITPRO keeps the
+    # /q/devkitPro shape that devkitPro's own rules are written against.
+    devkit_root, devkit_name = devkitpro.parent, devkitpro.name
+    if devkit_root == devkitpro:  # a toolchain unpacked straight onto a drive
+        devkit_root, devkit_name = devkitpro, ""
+    devkit_windows = f"{devkit_drive}:\\{devkit_name}".rstrip("\\")
+    msys_devkit = f"/{devkit_drive.lower()}/{devkit_name}".rstrip("/")
+
+    work_cwd = f"{build_drive}:\\{work_gba.relative_to(build_root)}"
+    discard_stale_objects(work_gba, f"{work_cwd}\n{msys_devkit}")
+
+    mapped = [(build_drive, build_root), (devkit_drive, devkit_root)]
+    for letter, folder in mapped:
+        subprocess.run(["subst", f"{letter}:", str(folder)], check=True, shell=True)
     try:
         environment["DEVKITPRO"] = msys_devkit
         environment["DEVKITARM"] = f"{msys_devkit}/devkitARM"
         environment["PATH"] = os.pathsep.join([
-            f"{drive}:\\{relative_devkit}\\devkitARM\\bin",
-            f"{drive}:\\{relative_devkit}\\tools\\bin",
+            f"{devkit_windows}\\devkitARM\\bin",
+            f"{devkit_windows}\\tools\\bin",
             make_dir,
             environment.get("PATH", ""),
         ])
-        subprocess.run(arguments, cwd=f"{drive}:\\{relative_gba}",
-                       env=environment, check=True)
+        subprocess.run(arguments, cwd=work_cwd, env=environment, check=True)
     finally:
-        subprocess.run(["subst", f"{drive}:", "/D"], check=False, shell=True)
+        for letter, _ in mapped:
+            subprocess.run(["subst", f"{letter}:", "/D"], check=False, shell=True)
 
 
 # ---------------------------------------------------------------------------
