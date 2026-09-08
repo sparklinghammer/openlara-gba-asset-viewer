@@ -158,7 +158,7 @@ anything per model. Without it the folder just gets scanned:
   "defaults": { "frame_rate": 2, "scale": "auto" },
   "models": [
     { "file": "hero.glb",  "name": "HERO", "rotate": [90, 0, 0] },
-    { "file": "crate.glb", "name": "CRATE" }
+    { "file": "crate.glb", "name": "CRATE", "scale": 400 }
   ]
 }
 ```
@@ -173,13 +173,25 @@ Every key is optional:
 |---|---|---|
 | `name` | the file name | title on screen, 23 characters max |
 | `slot` | position in the list | where it goes in the catalogue, 0 to 190 |
-| `scale` | `"auto"` | `auto` grows anything under 64 units up to one sector (1024); or give a number |
+| `scale` | `"auto"` | how many engine units one unit of your file becomes; `auto` fits the model to one sector (1024 units) |
 | `frame_rate` | `2` | ticks between resampled keyframes; 1 is 30 Hz, 2 is 15 Hz |
 | `rotate` | `[0, 0, 0]` | degrees X, Y, Z, applied before anything else |
 | `flip_winding` | `"auto"` | force the facing when something shows its inside |
 | `double_sided` | `"auto"` | `auto` fixes the winding and keeps one face per triangle, doubling only what can't be oriented at all; `true` doubles everything, `false` never does |
 
-`defaults` applies `frame_rate` and `scale` to every model at once.
+`defaults` sets any of these for every model at once, and a model's own entry
+wins over it. That is how you give one oversized file its own scale without
+touching the rest of the pack.
+
+`scale` is not the size on screen. The viewer frames whatever it loads, so a
+model takes up the same part of the screen whether it converts to 200 units or
+20000. What it controls is precision. Vertices are stored in quarter units, so a
+model that converts to 1024 units has 256 steps to describe its longest side.
+Set it too low and neighbouring vertices round onto each other until triangles
+stop existing; the converter warns you when that starts happening, and tells you
+how many steps the model has left. `auto` is right almost always. Reach for a
+number when a file arrives in units so large that `auto` leaves it alone, or
+when you want a specific budget for a dense mesh.
 
 ### What the hardware can take
 

@@ -1505,6 +1505,10 @@ class JointMesh:
     # For the vertices the source shares between bones: every influence, as
     # (node, weight, position in that node's rest frame). None elsewhere.
     blends: list = field(default_factory=list)
+    # Triangles whose three corners quantised onto fewer than three points.
+    # A handful is normal; a large share means the scale is too small to hold
+    # the shape, and the caller says so rather than shipping a ruined model.
+    collapsed: int = 0
 
     def aabb(self) -> tuple[tuple[int, int, int], tuple[int, int, int]]:
         """Local bounds in engine units; stored vertices are world units >> 2."""
@@ -1742,6 +1746,7 @@ def build_joint_mesh(model: gltf_reader.Gltf, joint: Joint, scale: float,
     vertex_bones: list[int] = []
     vertex_blends: list = []
     faces: list[Face] = []
+    collapsed = 0
 
     def vertex_slot(position, bone: int, blend=None) -> int:
         x, y, z = position
@@ -1752,9 +1757,11 @@ def build_joint_mesh(model: gltf_reader.Gltf, joint: Joint, scale: float,
             int(round(-z * scale / 4.0)),
         )
         for value in key:
+            # -32768 is a perfectly good int16; only the positive end is short.
             if not -32768 <= value <= 32767:
                 raise BuildError(
-                    f"{model.path.name}: vertex {key} overflows int16; reduce --scale"
+                    f"{model.path.name}: vertex {key} does not fit the int16 the "
+                    f"vertex store uses, at scale {scale:.4g}"
                 )
         # Two vertices at the same point but on different bones are two
         # vertices: they part company as soon as the bones do. The same goes
@@ -1793,7 +1800,8 @@ def build_joint_mesh(model: gltf_reader.Gltf, joint: Joint, scale: float,
                                 prim.blends[c] if prim.blends else None)
                     for c in corners)
                 if len(set(slots)) != 3:
-                    continue      # degenerate after welding, nothing to draw
+                    collapsed += 1    # degenerate after welding, nothing to draw
+                    continue
                 uvs = None
                 if prim.uvs is not None:
                     uvs = [prim.uvs[c] for c in corners]
@@ -1804,7 +1812,7 @@ def build_joint_mesh(model: gltf_reader.Gltf, joint: Joint, scale: float,
             f"{model.path.name}: joint {node.name!r} has {len(vertices)} welded vertices, "
             f"vCount is a uint8 and allows {MAX_VERTS_PER_MESH}"
         )
-    return JointMesh(vertices, faces, vertex_bones, vertex_blends)
+    return JointMesh(vertices, faces, vertex_bones, vertex_blends, collapsed)
 
 
 def chain_span(indices, previous: int) -> tuple[int, int]:
@@ -2093,6 +2101,42 @@ def build_model_at(spec: ModelSpec, glyphs: GlyphStrip, verbose: bool,
         scale = AUTO_SCALE_TARGET / extent if extent < AUTO_SCALE_TARGET else 1.0
     else:
         scale = float(spec.scale)
+
+    # Two separate int16s bound the scale, and they bite at different sizes.
+    # Mesh vertices are stored local to their joint in quarter units, so that
+    # one allows four times as much; joint offsets and the per-frame bounding
+    # boxes are stored in whole engine units from the model's own origin, and
+    # for anything sizeable that is the tighter of the two. Both are measured
+    # here, before a single mesh is built, so the message can name the number to
+    # write down instead of the first vertex that happened to go over. The first
+    # offender is rarely the worst one, and a limit read off it fails again a
+    # little lower down.
+    reach = 0.0
+    for joint in joints:
+        for points in local_points(model, joint, bind_world):
+            for point in points:
+                reach = max(reach, abs(point[0]), abs(point[1]), abs(point[2]))
+    origin = max((max(abs(lo[i]), abs(hi[i])) for i in range(3)
+                  if hi[i] > -1e17), default=0.0)
+    ceilings = []
+    if reach:
+        ceilings.append((131068.0 / reach, "the vertex store"))
+    if origin:
+        ceilings.append((32767.0 / origin, "the joint offsets and frame bounds"))
+    if ceilings:
+        allowed, binding = min(ceilings)
+        if scale > allowed:
+            # Rounded down, and a whisker under, so the printed value is one
+            # that builds rather than one sitting exactly on the edge.
+            usable = math.floor(allowed * 0.999 * 100) / 100
+            raise BuildError(
+                f"{spec.path.name}: scale {scale:.4g} is too large for this "
+                f"model. {binding.capitalize()} hold int16, and this model "
+                f"passes that at any scale above {allowed:.4g}. Give it "
+                f"\"scale\": {usable:g} or less on its own entry in pack.json; "
+                f"a model's own entry overrides the pack-wide default, so the "
+                f"rest of the pack keeps theirs."
+            )
 
     # Reported rather than judged: a quadruped is honestly longer than it is
     # tall, so no threshold separates that from a model exported Z-up. The
@@ -2395,11 +2439,13 @@ def build_model_at(spec: ModelSpec, glyphs: GlyphStrip, verbose: bool,
     joint_bounds: list[tuple[tuple[int, int, int], tuple[int, int, int]]] = []
     visible_mask = 0
     total_faces = 0
+    collapsed_faces = 0
     for slot, joint in enumerate(joints):
         mesh = build_joint_mesh(model, joint, scale, windings[slot], bind_world,
                                 two_sided[slot], anchors.get(slot))
         joint_bounds.append(mesh.aabb())
         total_faces += len(mesh.faces)
+        collapsed_faces += mesh.collapsed
         if not mesh.faces:
             # A joint with no geometry keeps its place in the hierarchy but is
             # marked absent the way TR1 does it: a zero mesh offset plus a clear
@@ -2499,6 +2545,23 @@ def build_model_at(spec: ModelSpec, glyphs: GlyphStrip, verbose: bool,
         print(f"    note: {total_faces} faces, within {MAX_FACES_PER_FRAME} but close to it; "
               "anything past that budget is dropped at draw time.")
 
+    # A scale too small for the model rounds neighbouring vertices onto the same
+    # quarter-unit and the triangles between them stop existing. It is silent
+    # otherwise: the build succeeds and the viewer shows a ruined model, which
+    # is a hard thing to attribute to a number in pack.json.
+    if collapsed_faces:
+        share = 100.0 * collapsed_faces / (total_faces + collapsed_faces)
+        if share >= 2.0:
+            where = "\"scale\" for this model in pack.json" if spec.scale != "auto" else "the model"
+            print(f"    WARNING: {collapsed_faces} of {total_faces + collapsed_faces} "
+                  f"triangles ({share:.0f}%) collapsed to a line or a point when the "
+                  f"vertices were rounded at scale {scale:.4g}. The shape is being lost. "
+                  f"Raise {where}: at this scale the whole model spans "
+                  f"{max(span * scale for span in spans) / 4.0:.0f} stored steps.")
+        elif verbose:
+            print(f"    note: {collapsed_faces} triangle(s) collapsed when rounded at "
+                  f"scale {scale:.4g}, {share:.1f}% of the model")
+
     # ---- nodes -------------------------------------------------------------
     # The node table holds each joint's rest offset from its parent joint.
     bind = joint_locals(model, joints, scale, {}, {}, 0.0, pre)
@@ -2540,6 +2603,7 @@ def build_model_at(spec: ModelSpec, glyphs: GlyphStrip, verbose: bool,
         # this value, and a scale of 1.0009775 rounded to 1.001 welds vertices
         # differently. Rounding belongs in the display, not in the record.
         "scale": scale,
+        "collapsed_faces": collapsed_faces,
         "split_budget": split_budget,
         "seam_overlap": skirt,
         "skinned_vertices": len(skin_blob),

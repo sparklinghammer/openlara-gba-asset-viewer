@@ -15,6 +15,13 @@ namespace AssetViewer
     static const int32 YAW_HOLD_TICKS = 8;
     static const int32 VERTICAL_MOVE_STEP = 2;
 
+    // The renderer darkens everything drawn beyond FOG_MIN, and an asset
+    // viewer has no use for depth fog. Parking a model past it costs most of
+    // the palette -- a big model used to arrive as a four-colour silhouette --
+    // so framing stops here instead and shrinks the basis to make up the
+    // difference. Size on screen and brightness then both hold at any scale.
+    static const int32 MAX_VIEW_DISTANCE = FOG_MIN;
+
     static const int32 PANEL_LIGHT = 14;
     static const int32 PANEL_DARK = 10;
     static const int32 MODEL_TARGET_X = FRAME_WIDTH / 2;
@@ -405,7 +412,7 @@ namespace AssetViewer
         int32 distanceForScale = state.fitRadius * 5;
         int32 distanceForDepth = state.fitRadius + 384;
         int32 idealDistance = X_MAX(distanceForScale, distanceForDepth);
-        int32 maximumDistance = VIEW_DIST - 512;
+        int32 maximumDistance = MAX_VIEW_DISTANCE;
         state.fitDistance = X_CLAMP(idealDistance, 512, maximumDistance);
         state.fitScale = idealDistance > maximumDistance
                        ? maximumDistance * (1 << FIXED_SHIFT) / idealDistance
@@ -657,7 +664,7 @@ namespace AssetViewer
         int32 step = X_MAX(state.fitRadius / 16, 8) * X_MAX(frames, 1);
         state.zoom += direction * step;
         int32 minimum = 320 - state.fitDistance;
-        int32 maximum = VIEW_DIST - 512 - state.fitDistance;
+        int32 maximum = MAX_VIEW_DISTANCE - state.fitDistance;
         state.zoom = X_CLAMP(state.zoom, minimum, maximum);
     }
 
@@ -1432,7 +1439,7 @@ namespace AssetViewer
         int32 frameRate, frameDelta;
         getViewerFrames(type, animationIndex, state.frameIndex, frameA, frameB, frameRate, frameDelta);
         vec3i root = interpolatedRoot(frameA, frameB, frameRate, frameDelta);
-        int32 distance = X_CLAMP(state.fitDistance + state.zoom, 320, VIEW_DIST - 512);
+        int32 distance = X_CLAMP(state.fitDistance + state.zoom, 320, MAX_VIEW_DISTANCE);
         int32 targetX = screenOffsetToWorld(MODEL_TARGET_X - FRAME_WIDTH / 2, distance);
         int32 targetY = screenOffsetToWorld(MODEL_TARGET_Y + state.verticalOffset - FRAME_HEIGHT / 2, distance);
 

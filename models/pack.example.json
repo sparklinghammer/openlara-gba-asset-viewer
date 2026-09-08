@@ -1,6 +1,6 @@
 {
   "defaults": { "frame_rate": 2, "scale": "auto" },
   "models": [
-    { "file": "cheems.glb", "name": "CHEEMS" }
+    { "file": "cheems.glb", "name": "CHEEMS", "scale": "auto" }
   ]
 }
